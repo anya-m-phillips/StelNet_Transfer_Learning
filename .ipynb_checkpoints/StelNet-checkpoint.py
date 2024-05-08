@@ -21,6 +21,7 @@ import torch.nn as nn
 # Normalize Data
 
 def normalize(data):
+    # ADD OPTION TO SpECIFY WHETHER WE ARE UN/NORMALIZING PHOTOMETRY OR TEFF?LUM OR AGE?MASS
     norm_min_preMS = np.load('Aux/norm_min_preMS.npy')
     norm_max_preMS = np.load('Aux/norm_max_preMS.npy')
     norm_min_postMS = np.load('Aux/norm_min_postMS.npy')
@@ -34,6 +35,7 @@ def normalize(data):
 # Normalize Data
 
 def unnormalize(y_pre, y_post):
+    # ADD OPTION TO SpECIFY WHETHER WE ARE UN/NORMALIZING PHOTOMETRY OR TEFF?LUM OR AGE?MASS
     norm_min_preMS = np.load('Aux/norm_min_preMS.npy')
     norm_max_preMS = np.load('Aux/norm_max_preMS.npy')
     norm_min_postMS = np.load('Aux/norm_min_postMS.npy')
@@ -73,8 +75,20 @@ class NN(nn.Module):
 
 # Predict
 
+## prediction for photometry
+# def predict_surface_params(X):
+    # normalize specifying normalizing photometry
+
+    # D_in and D_out will be 3 and 2 instead of 2 and 2
+    # num layers and nodes will both be 10, but confirm with other jupyter notebook
+    # activation
+    # make net with the class
+    # specify model to load here
+    # do the predictions--see jupyter notebook!
+
+## prediction for teff, lum->age, mass
 def predict(X, n=20, TL=None):
-    x_data_preMS, x_data_postMS = normalize(X)
+    x_data_preMS, x_data_postMS = normalize(X) # specify normalizing a teff and lum
     
     D_in = 2
     D_out = 2
