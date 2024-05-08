@@ -20,21 +20,40 @@ import torch.nn as nn
 
 # Normalize Data
 
-def normalize(data):
-    # ADD OPTION TO SpECIFY WHETHER WE ARE UN/NORMALIZING PHOTOMETRY OR TEFF?LUM OR AGE?MASS
-    norm_min_preMS = np.load('Aux/norm_min_preMS.npy')
-    norm_max_preMS = np.load('Aux/norm_max_preMS.npy')
-    norm_min_postMS = np.load('Aux/norm_min_postMS.npy')
-    norm_max_postMS = np.load('Aux/norm_max_postMS.npy')
-    x_data_preMS = torch.from_numpy((data[:,:2]-norm_min_preMS[:2])/(norm_max_preMS[:2]-norm_min_preMS[:2])).float()
-    x_data_postMS = torch.from_numpy((data[:,:2]-norm_min_postMS[:2])/(norm_max_postMS[:2]-norm_min_postMS[:2])).float()
+def normalize(data, photometry=False):
+    """
+    if photometry==True, first 3 columns of data should be 3 gaia photometry bands for each object
+    if photometry==False, first 2 columns of data should be logTeff, logLum for each object
+    """
+    if photometry==True:
+        norm_min = np.load("Aux/norm_min_payne.npy", allow_pickle=True)
+        norm_max = np.load("Aux/norm_max_payne.npy", allow_pickle=True)
 
-    return x_data_preMS, x_data_postMS
+        x_data = torch.from_numpy((data[:,:3] - norm_min[:3]) / (norm_max[:3]-norm_min[:3]))
+        return x_data
+        
+    if photometry==False:
+        norm_min_preMS = np.load('Aux/norm_min_preMS.npy')
+        norm_max_preMS = np.load('Aux/norm_max_preMS.npy')
+        norm_min_postMS = np.load('Aux/norm_min_postMS.npy')
+        norm_max_postMS = np.load('Aux/norm_max_postMS.npy')
+        x_data_preMS = torch.from_numpy((data[:,:2]-norm_min_preMS[:2])/(norm_max_preMS[:2]-norm_min_preMS[:2])).float()
+        x_data_postMS = torch.from_numpy((data[:,:2]-norm_min_postMS[:2])/(norm_max_postMS[:2]-norm_min_postMS[:2])).float()
+
+        return x_data_preMS, x_data_postMS
 
 
-# Normalize Data
+def unnormalize_teff_lum(y):
+    """
+    y comes from the neural network prediction
+    """
+    norm_min = np.load("Aux/norm_min_payne.npy", allow_pickle=True)
+    norm_max = np.load("Aux/norm_max_payne.npy", allow_pickle=True)
+    y_un = y*(np.array(norm_max_payne[3:]-norm_min[3:])) + norm_min[3:]
+    return y_un
 
-def unnormalize(y_pre, y_post):
+
+def unnormalize_age_mass(y_pre, y_post):
     # ADD OPTION TO SpECIFY WHETHER WE ARE UN/NORMALIZING PHOTOMETRY OR TEFF?LUM OR AGE?MASS
     norm_min_preMS = np.load('Aux/norm_min_preMS.npy')
     norm_max_preMS = np.load('Aux/norm_max_preMS.npy')
@@ -74,21 +93,25 @@ class NN(nn.Module):
 
 
 # Predict
-
 ## prediction for photometry
-# def predict_surface_params(X):
-    # normalize specifying normalizing photometry
-
-    # D_in and D_out will be 3 and 2 instead of 2 and 2
-    # num layers and nodes will both be 10, but confirm with other jupyter notebook
-    # activation
-    # make net with the class
-    # specify model to load here
-    # do the predictions--see jupyter notebook!
+def predict_surface_params(X):
+    x_data = normalize(X, photometry=True)
+    
+    D_in=3
+    D_out=2
+    num_layers=10 # change if photometry NN architeture changes
+    num_nodes=10 # ^^
+    activation=nn.ReLU()
+    net=NN(D_in, D_out, num_layers, num_nodes, activation)
+    modelname = "Models/Photometry/payne_10layer_10node_10000it_1em3lr_xsphysicaldataset_osc"# this is an example model
+    net.load_state_dict(torch.load(modelname), strict=False)
+    y_pred = torch.unsqueeze(net(x_data),0).detatch().numpy()[0]
+    y_pred_un = unnormalize_teff_lum(y_pred)
+    return y_pred_un
 
 ## prediction for teff, lum->age, mass
-def predict(X, n=20, TL=None):
-    x_data_preMS, x_data_postMS = normalize(X) # specify normalizing a teff and lum
+def predict_age_mass(X, n=20, TL=None):
+    x_data_preMS, x_data_postMS = normalize(X, photometry=False) # specify normalizing a teff and lum
     
     D_in = 2
     D_out = 2
@@ -136,7 +159,7 @@ def predict(X, n=20, TL=None):
         y_pred_preMS = np.append(y_pred_preMS, torch.unsqueeze(net_preMS(x_data_preMS),0).detach().numpy(), axis=0)
         y_pred_postMS = np.append(y_pred_postMS, torch.unsqueeze(net_postMS(x_data_postMS),0).detach().numpy(), axis=0)
     
-    y_pred_preMS_un, y_pred_postMS_un = unnormalize(y_pred_preMS, y_pred_postMS)
+    y_pred_preMS_un, y_pred_postMS_un = unnormalize_age_mass(y_pred_preMS, y_pred_postMS)
 
     return y_pred_preMS_un, y_pred_postMS_un
 
@@ -255,7 +278,7 @@ def plot_gaussian_posteriors(y_gaussian_posteriors, obs_id, log_age_range=[4,12]
     
     return ax
 
-def transfer_learning_bootstraps(data, n_trs, n_trs_mist, modelname, stage, n_it=100, start_from_baseline=True, starting_point=None):
+def transfer_learning_bootstraps(data, n_trs, n_trs_mist, modelname, stage, n_it=100, start_from_baseline=True, starting_point=None, verbose=True):
     """
     Function to perform transfer learning for any data
     
@@ -374,8 +397,6 @@ def transfer_learning_bootstraps(data, n_trs, n_trs_mist, modelname, stage, n_it
     ### THE TRANSFER LEARNING HAPPENS HERE! ###
     for i in range(20):                
         #net.apply(weight_reset)  # don't need since we're starting with a loaded model every time ?
-
-
         if start_from_baseline==True:
             if stage=="pre":
                 net.load_state_dict(torch.load('Models/Baseline/mist_baseline_preMS10'), strict=False) 
@@ -396,7 +417,8 @@ def transfer_learning_bootstraps(data, n_trs, n_trs_mist, modelname, stage, n_it
 
         
         Loss = []
-        
+        if verbose==True:
+            print("training model # "+str(i-1))
         for j in range(num_iterations):
             y_data = y_data.reshape(-1,2)   
     
@@ -416,7 +438,8 @@ def transfer_learning_bootstraps(data, n_trs, n_trs_mist, modelname, stage, n_it
             optim.step()            
             
             Loss.append(loss)
-            if (j + 1) % 500 == 0:
-                print("[iteration %04d] loss: %.4f" % (j + 1, loss.item()))
+            if (j + 1) % 10 == 0:
+                if verbose==True:
+                    print("[iteration %04d] loss: %.4f" % (j + 1, loss.item()))
     
         torch.save(net.state_dict(), modelname+'{}'.format(i))   
