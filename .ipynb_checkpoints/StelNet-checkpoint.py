@@ -103,7 +103,7 @@ def predict_surface_params(X):
     num_nodes=10 # ^^
     activation=nn.ReLU()
     net=NN(D_in, D_out, num_layers, num_nodes, activation)
-    modelname = "Models/Photometry/payne_10layer_10node_10000it_1em3lr_xsphysicaldataset_osc"# this is an example model
+    modelname = "Models/Photometry/payne_10layer_10node_5000it_1em3lr_full_physical_dataset_NOSCHEDULER_osc"# this is an example model with the example hyperparameters trained on the full payne dataset
     net.load_state_dict(torch.load(modelname), strict=False)
     y_pred = torch.unsqueeze(net(x_data),0).detatch().numpy()[0]
     y_pred_un = unnormalize_teff_lum(y_pred)
