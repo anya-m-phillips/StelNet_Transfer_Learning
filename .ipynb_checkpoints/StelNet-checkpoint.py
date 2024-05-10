@@ -29,7 +29,7 @@ def normalize(data, photometry=False):
         norm_min = np.load("Aux/norm_min_payne.npy", allow_pickle=True)
         norm_max = np.load("Aux/norm_max_payne.npy", allow_pickle=True)
 
-        x_data = torch.from_numpy((data[:,:3] - norm_min[:3]) / (norm_max[:3]-norm_min[:3]))
+        x_data = torch.from_numpy((data[:,:3] - norm_min[:3]) / (norm_max[:3]-norm_min[:3])).float()
         return x_data
         
     if photometry==False:
@@ -49,7 +49,7 @@ def unnormalize_teff_lum(y):
     """
     norm_min = np.load("Aux/norm_min_payne.npy", allow_pickle=True)
     norm_max = np.load("Aux/norm_max_payne.npy", allow_pickle=True)
-    y_un = y*(np.array(norm_max_payne[3:]-norm_min[3:])) + norm_min[3:]
+    y_un = y*(np.array(norm_max[3:]-norm_min[3:])) + norm_min[3:]
     return y_un
 
 
@@ -103,9 +103,9 @@ def predict_surface_params(X):
     num_nodes=10 # ^^
     activation=nn.ReLU()
     net=NN(D_in, D_out, num_layers, num_nodes, activation)
-    modelname = "Models/Photometry/payne_10layer_10node_5000it_1em3lr_full_physical_dataset_NOSCHEDULER_osc"# this is an example model with the example hyperparameters trained on the full payne dataset
+    modelname = "Models/Photometry/payne_10layer_10node_5000it_1em3lr_full_physicaldataset_NOSCHEDULER_osc"# this is an example model with the example hyperparameters trained on the full payne dataset
     net.load_state_dict(torch.load(modelname), strict=False)
-    y_pred = torch.unsqueeze(net(x_data),0).detatch().numpy()[0]
+    y_pred = torch.unsqueeze(net(x_data),0).detach().numpy()[0]
     y_pred_un = unnormalize_teff_lum(y_pred)
     return y_pred_un
 
