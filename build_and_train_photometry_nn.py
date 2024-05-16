@@ -29,10 +29,10 @@ activation = nn.ReLU()
 print("reading in data")
 
 if full_dataset==True:
-    print("full payne dataset too large for github repository but available upon request!")
+    print("UNCOMMENT BELOW THIS LINE AND ADD A PATH TO FULL DATASET")
     # datapath = # ADD PATH TO THE FULL DATASET HERE! 
-    # #payne = Table.read(datapath+"GaiaPredPhot.fits", format="fits")
-    # #payne_df = payne.to_pandas()
+    # payne_df = pd.read_csv(datapath)
+    # payne_df = payne_df[["GaiaDR3_G","GaiaDR3_BP","GaiaDR3_RP","logTeff","logLum"]].copy()
     # print(" done reading data")
 
 if full_dataset==False:
