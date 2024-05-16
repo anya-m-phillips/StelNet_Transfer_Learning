@@ -30,7 +30,7 @@ print("reading in data")
 
 if full_dataset==True:
     print("full payne dataset too large for github repository but available upon request!")
-    # datapath = # ADD PATH TO FULL DATASET gaiaPredPhot.fits HERE 
+    # datapath = # ADD PATH TO THE FULL DATASET HERE! 
     # #payne = Table.read(datapath+"GaiaPredPhot.fits", format="fits")
     # #payne_df = payne.to_pandas()
     # print(" done reading data")

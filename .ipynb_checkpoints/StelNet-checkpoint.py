@@ -418,7 +418,7 @@ def transfer_learning_bootstraps(data, n_trs, n_trs_mist, modelname, stage, n_it
         
         Loss = []
         if verbose==True:
-            print("training model # "+str(i-1))
+            print("training model # "+str(i))
         for j in range(num_iterations):
             y_data = y_data.reshape(-1,2)   
     
